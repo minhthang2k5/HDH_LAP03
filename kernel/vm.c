@@ -449,3 +449,41 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+void
+support(pagetable_t pagetable, int level)
+{
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    
+    // handle valid PTE  
+    if(pte & PTE_V){
+      
+      // print indentation based on level
+      for(int j = 0; j < level; j++){
+        printf(" ..");
+      }
+
+      uint64 pa = PTE2PA(pte);
+
+      printf("%d: pte %p pa %p\n", i, pte, pa);
+
+      // In Risc-v: if R, W, X are all 0, this PTE points to a child page table
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0){
+        pagetable_t child = (pagetable_t)pa;
+        support(child, level + 1);
+      }
+    }
+  }
+}
+
+
+void
+vmprint(pagetable_t pagetable)
+{
+  
+  printf("page table %p\n", pagetable);
+
+  // recursive support function
+  support(pagetable, 1);
+}
