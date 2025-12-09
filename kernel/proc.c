@@ -125,9 +125,13 @@ found:
   p->pid = allocpid();
   p->state = USED;
   #ifdef LAB_PGTBL
-  p->usc = (struct usyscall *)kalloc(); //Allocate one 4096-byte page
-  memset(p->usc,0,PGSIZE);//Reset data in use
-  p->usc->pid = p->pid;//
+  // Cấp phát trang cho usyscall
+  if((p->usyscall = (struct usyscall *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  p->usyscall->pid = p->pid;
   #endif
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -135,6 +139,8 @@ found:
     release(&p->lock);
     return 0;
   }
+
+    
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
@@ -166,9 +172,9 @@ freeproc(struct proc *p)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
   #ifdef LAB_PGTBL
-  if(p->usc)
-    kfree((void*)p->usc);
-  p->usc = 0;
+  if(p->usyscall)
+    kfree((void*)p->usyscall);
+  p->usyscall = 0;
   #endif
   p->sz = 0;
   p->pid = 0;
@@ -212,11 +218,19 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
-  //map user page
+    
+  
   #ifdef LAB_PGTBL
-  mappages(pagetable, USYSCALL,PGSIZE,(uint64)(p->usc),PTE_R | PTE_U | PTE_V);
+  if(mappages(pagetable, USYSCALL, PGSIZE,
+    (uint64)(p->usyscall), PTE_R | PTE_U) < 0){ 
+      uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+      uvmunmap(pagetable, TRAPFRAME, 1, 0);
+      uvmfree(pagetable, 0);
+      return 0;
+    }
   #endif
 
+  
   return pagetable;
 }
 
@@ -225,11 +239,11 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
+  #ifdef LAB_PGTBL
+  uvmunmap(pagetable, USYSCALL, 1, 0);
+  #endif
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
-  #ifdef LAB_PGTBL
-  uvmunmap(pagetable,USYSCALL,1,0);
-  #endif
   uvmfree(pagetable, sz);
 }
 
