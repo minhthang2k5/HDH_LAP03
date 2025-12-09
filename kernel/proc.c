@@ -125,9 +125,9 @@ found:
   p->pid = allocpid();
   p->state = USED;
   #ifdef LAB_PGTBL
-  p->usc = (struct usyscall *)kalloc();
-  memset(p->usc,0,PGSIZE);
-  p->usc->pid = p->pid;
+  p->usc = (struct usyscall *)kalloc(); //Allocate one 4096-byte page
+  memset(p->usc,0,PGSIZE);//Reset data in use
+  p->usc->pid = p->pid;//
   #endif
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
