@@ -100,13 +100,13 @@ struct proc {
   uint64 sz;                   // Size of process memory (bytes)
   pagetable_t pagetable;       // User page table
   struct trapframe *trapframe; // data page for trampoline.S
-  struct usyscall *usyscall;
+  
 
   struct context context;      // swtch() here to run process
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;  
   #ifdef LAB_PGTBL         // Current directory
-  struct usyscall *usc;
+  struct usyscall *usyscall;
   #endif
   char name[16];               // Process name (debugging)
 };
