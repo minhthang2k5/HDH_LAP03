@@ -131,6 +131,7 @@ found:
     release(&p->lock);
     return 0;
   }
+  memset(p->usyscall, 0, PGSIZE);
   p->usyscall->pid = p->pid;
   #endif
   // Allocate a trapframe page.
